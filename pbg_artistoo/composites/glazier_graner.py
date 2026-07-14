@@ -37,7 +37,8 @@ def _sorting_document(cfg, interval):
             "interval": float(interval),
             "inputs": {
                 "temperature": ["setpoints", "temperature"],
-                "target_volume": ["setpoints", "target_volume"],
+                "light_target_volume": ["setpoints", "light_target_volume"],
+                "dark_target_volume": ["setpoints", "dark_target_volume"],
             },
             "outputs": {
                 "cell_count": ["readouts", "cell_count"],
@@ -53,7 +54,8 @@ def _sorting_document(cfg, interval):
         },
         "setpoints": {
             "temperature": float(cfg.get("temperature", 10.0)),
-            "target_volume": float(cfg.get("target_volume", 40.0)),
+            "light_target_volume": float(cfg.get("light_volume", 40.0)),
+            "dark_target_volume": float(cfg.get("dark_volume", 40.0)),
         },
         "readouts": {
             "cell_count": int(cfg.get("n_cells", 120)),
@@ -110,6 +112,10 @@ def _sorting_document(cfg, interval):
                     "description": "Total cells in the aggregate"},
         "field_size": {"type": "integer", "default": 95,
                        "description": "Square lattice edge length"},
+        "light_volume": {"type": "float", "default": 58.0,
+                         "description": "Target area of light cells"},
+        "dark_volume": {"type": "float", "default": 26.0,
+                        "description": "Target area of dark cells (Honda: ciliated cells are smaller)"},
         "temperature": {"type": "float", "default": 10.0,
                         "description": "Metropolis temperature T"},
         "interval": {"type": "float", "default": 2.0,
@@ -119,11 +125,16 @@ def _sorting_document(cfg, interval):
     },
 )
 def glazier_graner_checkerboard(core=None, *, n_cells=120, field_size=95,
+                                light_volume=58.0, dark_volume=26.0,
                                 temperature=10.0, interval=2.0, seed=3):
+    # Honda's quail-oviduct epithelium (the paper's checkerboard motivation)
+    # has large gland (light) and small ciliated (dark) cells — distinct
+    # per-type target areas, driven through separate setpoint ports.
     cfg = {
         "field_width": int(field_size), "field_height": int(field_size),
         "n_cells": int(n_cells), "dark_fraction": 0.5,
-        "target_volume": 40.0, "lambda_volume": 1.0,
+        "light_volume": float(light_volume), "dark_volume": float(dark_volume),
+        "lambda_volume": 1.0,
         "temperature": float(temperature), "seed": int(seed), "seed_half": 3,
         "J_ll": 10.0, "J_dd": 8.0, "J_ld": 6.0, "J_lM": 12.0, "J_dM": 12.0,
     }
@@ -157,7 +168,7 @@ def glazier_graner_cell_sorting(core=None, *, n_cells=120, field_size=95,
     cfg = {
         "field_width": int(field_size), "field_height": int(field_size),
         "n_cells": int(n_cells), "dark_fraction": 0.5,
-        "target_volume": 40.0, "lambda_volume": 1.0,
+        "light_volume": 40.0, "dark_volume": 40.0, "lambda_volume": 1.0,
         "temperature": float(temperature), "seed": int(seed), "seed_half": 3,
         "J_ll": 14.0, "J_dd": 2.0, "J_ld": 11.0, "J_lM": 16.0, "J_dM": 16.0,
     }
@@ -191,7 +202,7 @@ def glazier_graner_high_temperature(core=None, *, n_cells=120, field_size=95,
     cfg = {
         "field_width": int(field_size), "field_height": int(field_size),
         "n_cells": int(n_cells), "dark_fraction": 0.5,
-        "target_volume": 40.0, "lambda_volume": 1.0,
+        "light_volume": 40.0, "dark_volume": 40.0, "lambda_volume": 1.0,
         "temperature": float(temperature), "seed": int(seed), "seed_half": 3,
         "J_ll": 14.0, "J_dd": 2.0, "J_ld": 11.0, "J_lM": 16.0, "J_dM": 16.0,
     }

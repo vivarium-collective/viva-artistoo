@@ -26,7 +26,10 @@ def _proc(**cfg):
 
 def test_ports():
     p = _proc()
-    assert set(p.inputs()) == {"temperature", "target_volume"}
+    # light and dark are driven by SEPARATE setpoints (genuine multi-type)
+    assert set(p.inputs()) == {
+        "temperature", "light_target_volume", "dark_target_volume",
+    }
     outs = p.outputs()
     assert outs["heterotypic_fraction"].startswith("overwrite[")
     assert outs["cell_types"].startswith("overwrite[map[")
@@ -80,15 +83,41 @@ def test_generators_registered():
 @requires_artistoo
 def test_checkerboard_raises_heterotypic_fraction():
     core = build_core()
-    doc = glazier_graner_checkerboard(n_cells=80, field_size=75, interval=2.0, seed=3)
+    # equal cell sizes here isolates the ADHESION effect (negative gamma_ld);
+    # per-type size divergence is covered separately above.
+    doc = glazier_graner_checkerboard(n_cells=80, field_size=75,
+                                      light_volume=40, dark_volume=40,
+                                      interval=2.0, seed=3)
     sim = Composite({"state": doc}, core=core)
     sim.run(2.0)
     hf0 = sim.state["readouts"]["heterotypic_fraction"]
-    sim.run(24.0)
+    sim.run(30.0)
     hf1 = sim.state["readouts"]["heterotypic_fraction"]
     # negative gamma_ld -> unlike contact increases
     assert hf1 > hf0
     assert 0.0 <= hf1 <= 1.0
+    proc = sim.state["cpm"]["instance"]
+    proc.close()
+
+
+@requires_artistoo
+def test_per_type_setpoints_drive_distinct_sizes():
+    # light and dark given very different target areas via separate ports
+    core = build_core()
+    doc = glazier_graner_checkerboard(n_cells=80, field_size=75,
+                                      light_volume=60, dark_volume=24,
+                                      interval=4.0, seed=3)
+    sim = Composite({"state": doc}, core=core)
+    sim.run(60.0)
+    r = sim.state["readouts"]
+    vols, types = r["cell_volumes"], r["cell_types"]
+    light = [vols[c] for c in vols if types.get(c) == 1]
+    dark = [vols[c] for c in vols if types.get(c) == 2]
+    assert light and dark
+    mean_light = sum(light) / len(light)
+    mean_dark = sum(dark) / len(dark)
+    # the two types settle at clearly different areas — the whole point
+    assert mean_light > 1.7 * mean_dark
     proc = sim.state["cpm"]["instance"]
     proc.close()
 

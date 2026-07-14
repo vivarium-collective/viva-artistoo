@@ -381,9 +381,15 @@ class CPMSortingProcess(_BridgeMixin, Process):
     Inputs
     ------
     temperature : float
-        Metropolis temperature ``T`` (the live knob for the mixing transition).
-    target_volume : float
-        Preferred area ``A`` of every cell (paper uses ~40 lattice sites).
+        Metropolis temperature ``T`` (global — the live knob for the mixing
+        transition).
+    light_target_volume : float
+        Preferred area ``A`` of *light* (kind 1) cells.
+    dark_target_volume : float
+        Preferred area ``A`` of *dark* (kind 2) cells. Light and dark are
+        driven independently, so a sibling process can grow/shrink one type
+        without touching the other (the paper's checkerboard has unequal
+        areas for the two types).
 
     Outputs
     -------
@@ -410,7 +416,8 @@ class CPMSortingProcess(_BridgeMixin, Process):
         "field_height": {"_type": "integer", "_default": 90},
         "n_cells": {"_type": "integer", "_default": 120},
         "dark_fraction": {"_type": "float", "_default": 0.5},
-        "target_volume": {"_type": "float", "_default": 40.0},
+        "light_volume": {"_type": "float", "_default": 40.0},
+        "dark_volume": {"_type": "float", "_default": 40.0},
         "lambda_volume": {"_type": "float", "_default": 1.0},
         "temperature": {"_type": "float", "_default": 10.0},
         "seed": {"_type": "integer", "_default": 1},
@@ -440,7 +447,11 @@ class CPMSortingProcess(_BridgeMixin, Process):
         self._prev = {"cell_count": 0, "light_count": 0, "dark_count": 0}
 
     def inputs(self):
-        return {"temperature": "float", "target_volume": "float"}
+        return {
+            "temperature": "float",
+            "light_target_volume": "float",
+            "dark_target_volume": "float",
+        }
 
     def outputs(self):
         return {
@@ -458,7 +469,8 @@ class CPMSortingProcess(_BridgeMixin, Process):
     def initial_state(self):
         return {
             "temperature": float(self.config["temperature"]),
-            "target_volume": float(self.config["target_volume"]),
+            "light_target_volume": float(self.config["light_volume"]),
+            "dark_target_volume": float(self.config["dark_volume"]),
             "cell_count": self._n_light + self._n_dark,
             "light_count": self._n_light,
             "dark_count": self._n_dark,
@@ -472,7 +484,8 @@ class CPMSortingProcess(_BridgeMixin, Process):
 
     def _init_config(self) -> dict:
         c = self.config
-        tv = float(c["target_volume"])
+        lv = float(c["light_volume"])
+        dv = float(c["dark_volume"])
         lam = float(c["lambda_volume"])
         J_ll, J_dd, J_ld = float(c["J_ll"]), float(c["J_dd"]), float(c["J_ld"])
         J_lM, J_dM = float(c["J_lM"]), float(c["J_dM"])
@@ -482,8 +495,8 @@ class CPMSortingProcess(_BridgeMixin, Process):
             "seed": int(c["seed"]),
             "torus": [False, False],
             "kinds": [
-                {"V": tv, "LAMBDA_V": lam},  # 1 = light
-                {"V": tv, "LAMBDA_V": lam},  # 2 = dark
+                {"V": lv, "LAMBDA_V": lam},  # 1 = light
+                {"V": dv, "LAMBDA_V": lam},  # 2 = dark
             ],
             # index 0 = medium, 1 = light, 2 = dark
             "J": [
@@ -523,8 +536,8 @@ class CPMSortingProcess(_BridgeMixin, Process):
         params = {
             "T": float(state.get("temperature", self.config["temperature"])),
             "kind_V": {
-                1: float(state.get("target_volume", self.config["target_volume"])),
-                2: float(state.get("target_volume", self.config["target_volume"])),
+                1: float(state.get("light_target_volume", self.config["light_volume"])),
+                2: float(state.get("dark_target_volume", self.config["dark_volume"])),
             },
         }
         mcs = max(1, int(round(interval)))

@@ -61,7 +61,11 @@ CONFIGS = [
             "J_ll=10, J_dd=8, J_ld=6, J_lM=J_dM=12, T=10, λ=1. Because the "
             "heterotypic surface tension γ_ld is negative, unlike cells "
             "prefer to touch: light and dark cells intercalate and the "
-            "heterotypic boundary fraction RISES toward a checkerboard."
+            "heterotypic boundary fraction RISES toward a checkerboard. Here "
+            "the two types are given DIFFERENT target areas through separate "
+            "setpoint ports (large light 'gland' cells, small dark 'ciliated' "
+            "cells — as in Honda's quail oviduct), so a sibling process could "
+            "drive each type independently."
         ),
         "gen": glazier_graner_checkerboard,
     },
@@ -135,6 +139,7 @@ def run_config(cfg):
         except Exception as e:  # pragma: no cover
             diagram = f"<p class='muted'>diagram unavailable: {html.escape(str(e))}</p>"
 
+    ccfg = doc["cpm"]["config"]
     proc.close()
     r = sim.state["readouts"]
     return {
@@ -144,6 +149,8 @@ def run_config(cfg):
         "diagram": diagram,
         "elapsed": elapsed,
         "tensions": tensions,
+        "light_volume": float(ccfg["light_volume"]),
+        "dark_volume": float(ccfg["dark_volume"]),
         "final_hf": round(float(r["heterotypic_fraction"]), 3),
         "hf0": series["heterotypic_fraction"][0],
         "n_light": int(r["light_count"]),
@@ -238,6 +245,7 @@ def build_html(results):
             <div class="metric"><div class="m-val">{g['gamma_ld']:+.0f}</div><div class="m-lab">γ_ld</div></div>
             <div class="metric"><div class="m-val">{g['gamma_dM']:+.0f}</div><div class="m-lab">γ_dM</div></div>
             <div class="metric"><div class="m-val">{r['n_light']}/{r['n_dark']}</div><div class="m-lab">light / dark cells</div></div>
+            <div class="metric"><div class="m-val"><span class="legL">{r['light_volume']:.0f}</span>/<span class="legD">{r['dark_volume']:.0f}</span></div><div class="m-lab">target area L / D</div></div>
             <div class="metric"><div class="m-val">{r['hf0']:.2f}→{r['final_hf']:.2f}</div><div class="m-lab">heterotypic frac</div></div>
             <div class="metric"><div class="m-val">{r['elapsed']:.1f}s</div><div class="m-lab">wall-clock</div></div>
           </div>
