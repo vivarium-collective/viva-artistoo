@@ -1,0 +1,12 @@
+{
+  "name": "pbg-artistoo-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js bridge that drives the real Artistoo Cellular Potts Model for the pbg-artistoo Python wrapper.",
+  "main": "artistoo_bridge.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "dependencies": {
+    "Artistoo": "github:ingewortel/artistoo"
+  }
+}
