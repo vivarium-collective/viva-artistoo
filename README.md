@@ -131,27 +131,71 @@ exist in the store, so newborn cells would silently vanish — hence
 `overwrite[map[...]]`, the sensor exception. This is the only place `overwrite`
 is used.
 
+## `CPMSortingProcess` — two-type differential adhesion
+
+A second process reproduces the **Glazier & Graner (1993)** extended-Potts
+model: a mixed aggregate of *light* (kind 1) and *dark* (kind 2) cells in a
+*medium* (background), with a full cell-type adhesion matrix `J` and an area
+constraint. Behaviour is set entirely by the relative surface tensions
+
+```
+γ_ld = J_ld − (J_dd + J_ll)/2      γ_lM = J_lM − J_ll/2      γ_dM = J_dM − J_dd/2
+```
+
+There is **no motility** — fluctuations come from the finite-temperature
+Metropolis dynamics, exactly as in the paper.
+
+| Port (direction) | Type | Meaning |
+|---|---|---|
+| `temperature` (in) | `float` | Metropolis `T` — the live knob for the mixing transition |
+| `target_volume` (in) | `float` | preferred cell area (paper: ~40) |
+| `light_count`, `dark_count`, `cell_count` (out) | `integer` | per-type count deltas |
+| `heterotypic_fraction` (out) | `overwrite[float]` | fraction of cell–cell boundary between UNLIKE types — the paper's **sorting order parameter** |
+| `total_boundary`, `mean_connectedness` (out) | `overwrite[float]` | boundary length; mean connected fraction |
+| `centroids`, `cell_types`, `cell_volumes` (out) | `overwrite[map[...]]` | per-cell absolute snapshots |
+
+Config carries the adhesion matrix as scalars: `J_ll`, `J_dd`, `J_ld`, `J_lM`,
+`J_dM`, plus `n_cells`, `dark_fraction`, `field_width/height`, `target_volume`,
+`lambda_volume`, `temperature`, `seed`.
+
 ## Composite generators
 
-Two discoverable generators (visible in the vivarium-workbench Composites tab):
+Discoverable generators (visible in the vivarium-workbench Composites tab):
 
 - **`artistoo_cell_migration`** — migrating Act-model cells (adhesion + volume
-  + perimeter + activity). Params: `n_cells`, `field_size`, `target_volume`,
-  `lambda_act`, `max_act`, `temperature`, `interval`, `seed`.
+  + perimeter + activity).
 - **`artistoo_cell_sorting`** — non-motile adhesive cells relaxing toward a
-  compact aggregate (differential adhesion). Params: `n_cells`, `field_size`,
-  `target_volume`, `adhesion_cell_cell`, `interval`, `seed`.
+  compact aggregate.
+- **`glazier_graner_checkerboard`** — Fig. 7: negative γ_ld (=−3) → unlike
+  cells intercalate (heterotypic fraction rises).
+- **`glazier_graner_cell_sorting`** — Fig. 12: Technau–Holstein hydra energies
+  (γ_ld=+3, γ_dM=15) → dark cells sort to the interior (heterotypic fraction
+  falls).
+- **`glazier_graner_high_temperature`** — Fig. 9 / Table II: the sorting
+  energies at T=40 → thermal mixing / crumpling.
 
-## Demo
+## Reproducing Glazier & Graner (1993)
+
+The demo report reproduces three simulations from the founding CPM paper —
+*J. A. Glazier and F. Graner, "Simulation of the differential adhesion driven
+rearrangement of biological cells", Phys. Rev. E **47**, 2128 (1993)* — using
+the exact published J-matrix values:
+
+| Regime (figure) | J_ll, J_dd, J_ld, J_lM=J_dM | γ_ld | T | Behaviour |
+|---|---|---|---|---|
+| Checkerboard (Fig. 7) | 10, 8, 6, 12 | **−3** | 10 | intercalation, hetero-fraction ↑ |
+| Cell sorting (Fig. 12) | 14, 2, 11, 16 | **+3** | 10 | dark engulfed, hetero-fraction ↓ |
+| High-T mixing (Fig. 9) | 14, 2, 11, 16 | +3 | **40** | crumpling / mixing |
 
 ```bash
 source .venv/bin/activate
 python demo/demo_report.py       # writes demo/report.html and opens it
 ```
 
-The report runs three real CPM configurations (migration, sorting, high-T
-fluid), with interactive Plotly time series, an animated cell-field viewer, a
-bigraph architecture diagram, and a collapsible PBG document tree.
+The report renders each with an animated, **type-coloured** cell-field viewer
+(light = amber, dark = navy, with cell borders), the heterotypic-fraction order
+parameter over time, a bigraph architecture diagram, and a collapsible PBG
+document tree.
 
 ## Limitations & assumptions
 

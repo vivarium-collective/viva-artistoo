@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from process_bigraph import allocate_core
 
-from .processes import ArtistooProcess
+from .processes import ArtistooProcess, CPMSortingProcess
 
 
 def build_core(core=None):
@@ -19,4 +19,5 @@ def build_core(core=None):
     if core is None:
         core = allocate_core()
     core.register_link("ArtistooProcess", ArtistooProcess)
+    core.register_link("CPMSortingProcess", CPMSortingProcess)
     return core

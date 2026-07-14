@@ -92,6 +92,6 @@ def test_get_grid():
     grid = p.get_grid()
     assert grid["field_size"] == [30, 30]
     assert len(grid["cells"]) > 0
-    for x, y, cid in grid["cells"][:5]:
-        assert 0 <= x < 30 and 0 <= y < 30 and cid != 0
+    for x, y, cid, kind in grid["cells"][:5]:
+        assert 0 <= x < 30 and 0 <= y < 30 and cid != 0 and kind >= 1
     p.close()

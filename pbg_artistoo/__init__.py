@@ -5,11 +5,21 @@ a persistent Node.js bridge. Import :class:`ArtistooProcess` for the Process
 class, or use the discoverable composite generators.
 """
 
-from .processes import ArtistooProcess
-from .composites import artistoo_cell_migration, artistoo_cell_sorting
+from .processes import ArtistooProcess, CPMSortingProcess
+from .composites import (
+    artistoo_cell_migration,
+    artistoo_cell_sorting,
+    glazier_graner_checkerboard,
+    glazier_graner_cell_sorting,
+    glazier_graner_high_temperature,
+)
 
 __all__ = [
     "ArtistooProcess",
+    "CPMSortingProcess",
     "artistoo_cell_migration",
     "artistoo_cell_sorting",
+    "glazier_graner_checkerboard",
+    "glazier_graner_cell_sorting",
+    "glazier_graner_high_temperature",
 ]
