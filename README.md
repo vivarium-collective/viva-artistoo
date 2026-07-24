@@ -1,5 +1,10 @@
 # pbg-artistoo
 
+<!-- BEGIN dashboard -->
+> ## 📊 [**Live dashboard →**](https://vivarium-collective.github.io/pbg-artistoo/dashboard/)
+> Browse every investigation & study interactively, or read the [published investigation reports](https://vivarium-collective.github.io/pbg-artistoo/). Auto-published from `main` on every merge.
+<!-- END dashboard -->
+
 A [process-bigraph](https://github.com/vivarium-collective/process-bigraph)
 wrapper for **[Artistoo](https://github.com/ingewortel/artistoo)** — the
 JavaScript library for **Cellular Potts Model (CPM)** simulations.
