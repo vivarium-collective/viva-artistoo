@@ -8,8 +8,8 @@ setpoint stores and an output emitter. Runs the REAL Artistoo simulator.
 from __future__ import annotations
 
 try:
-    from pbg_superpowers.composite_generator import composite_generator
-except Exception:  # pragma: no cover - allow import without pbg_superpowers
+    from viva_superpowers.composite_generator import composite_generator
+except Exception:  # pragma: no cover - allow import without viva_superpowers
     def composite_generator(**_kwargs):
         def _wrap(fn):
             return fn

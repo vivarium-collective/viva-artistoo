@@ -73,7 +73,7 @@ def test_document_structures():
 
 
 def test_generators_registered():
-    from pbg_superpowers.composite_generator import _REGISTRY
+    from viva_superpowers.composite_generator import _REGISTRY
 
     for name in ("glazier_graner_checkerboard", "glazier_graner_cell_sorting",
                  "glazier_graner_high_temperature"):
