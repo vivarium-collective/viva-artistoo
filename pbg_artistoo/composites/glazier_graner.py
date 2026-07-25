@@ -19,7 +19,7 @@ The medium is the lattice background (kind 0); light = kind 1, dark = kind 2.
 from __future__ import annotations
 
 try:
-    from pbg_superpowers.composite_generator import composite_generator
+    from viva_superpowers.composite_generator import composite_generator
 except Exception:  # pragma: no cover
     def composite_generator(**_kwargs):
         def _wrap(fn):

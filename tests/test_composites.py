@@ -18,7 +18,7 @@ requires_artistoo = pytest.mark.skipif(
 
 def test_generators_registered():
     # cheap protection against forgetting the side-effect import
-    from pbg_superpowers.composite_generator import _REGISTRY
+    from viva_superpowers.composite_generator import _REGISTRY
 
     for name in ("artistoo_cell_migration", "artistoo_cell_sorting"):
         matches = [eid for eid in _REGISTRY if eid.endswith("." + name)]
