@@ -35,6 +35,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Require the loom bundle so a broken/missing Composite Explorer fails
+    # LOUDLY here instead of silently publishing a loom-less dashboard.
+    env:
+      VIVARIUM_WORKBENCH_REQUIRE_LOOM: "1"
     steps:
       - uses: actions/checkout@v4
 
