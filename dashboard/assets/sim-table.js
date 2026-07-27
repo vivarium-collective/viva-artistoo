@@ -77,9 +77,12 @@
     }
     var short = cid.split(".").pop();
     if (row.composite_registered) {
-      var href = "/?focus=composite-explore&id=" + encodeURIComponent(cid) + "#composite-explore";
-      return '<a href="' + href + '" title="' + esc(cid) + ' — open in the Composite Explorer" ' +
-        'style="text-decoration:none;white-space:nowrap;"><code style="font-size:11px;">' + esc(short) + "</code> ↗</a>";
+      // In-app link (keeps the left nav) that opens THIS run in the Composite
+      // Explorer with its saved config pre-filled — wired in renderTable().
+      return '<span class="sim-composite-link" data-run-id="' + esc(row.run_id || "") + '" ' +
+        'title="' + esc(cid) + ' — open this run in the Composite Explorer (its saved config pre-filled)" ' +
+        'style="text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap;color:#2563eb;">' +
+        '<code style="font-size:11px;color:inherit;">' + esc(short) + "</code> ↗</span>";
     }
     return '<span title="' + esc(cid) + ' — not a registered composite. Every simulation must map to one registered composite." ' +
       'style="color:#b91c1c;font-size:12px;white-space:nowrap;">⚠ <code style="font-size:11px;color:inherit;">' + esc(short) + "</code></span>";
@@ -113,6 +116,70 @@
       shown + esc(more) + "</code>";
   }
 
+  // Compatible-analysis-tools cell — a compact launch chip per entry in
+  // `row.matched_tools` (attached server-side by lib/simulations_index.py's
+  // `_attach_matched_tools`, capability-matched against the workspace's
+  // installed tools/viewers). Empty when nothing matches — no clutter.
+  //   - "launcher" tools: the launch_url is the resolve endpoint
+  //     (GET /api/analysis-viewer/{uid}/launch) — fetch, then open the
+  //     returned {"url": ...} in a new tab (mirrors static/walkthrough.js's
+  //     `_launchViewer`).
+  //   - everything else (embed-explorer, embed-3d, deep-links): launch_url
+  //     is already the concrete page to open — a plain new-tab link.
+  function toolsCell(row) {
+    var tools = (row && row.matched_tools) || [];
+    if (!tools.length) return "";
+    return tools.map(function (t) {
+      var label = esc(t.label || t.id || "Tool");
+      var url = t.launch_url || "";
+      if (t.kind === "launcher") {
+        return '<button type="button" class="action-btn js-authoring tool-launch-btn" ' +
+          'data-launch-url="' + esc(url) + '" title="Launch ' + label + '">' + label + " &#8599;</button>";
+      }
+      return '<a class="action-btn js-authoring" title="Open ' + label + '" target="_blank" ' +
+        'rel="noopener" href="' + esc(url) + '" style="text-decoration:none;">' + label + " &#8599;</a>";
+    }).join(" ");
+  }
+
+  // Launch a "launcher"-kind tool chip: fetch the resolve endpoint, then open
+  // the returned URL. Delegated at the document level (capture phase) so it
+  // works for both the global Sim-DB tbody and the per-study renderTable()
+  // mount, and so it can stopPropagation before the row's own click-to-open
+  // handler fires — same pattern as `_onRerunButtonClick` below.
+  function _onToolLaunchClick(e) {
+    var btn = e.target.closest(".tool-launch-btn");
+    if (!btn) return;
+    e.stopPropagation();
+    var url = btn.getAttribute("data-launch-url");
+    if (!url) return;
+    var origLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "…";
+    fetch(url).then(function (r) {
+      return r.text().then(function (t) {
+        var d = {};
+        try { d = t ? JSON.parse(t) : {}; }
+        catch (e2) { d = { error: "server returned " + r.status }; }
+        return { status: r.status, body: d };
+      });
+    }).then(function (res) {
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      var b = res.body || {};
+      if (res.status === 200 && b.url) window.open(b.url, "_blank", "noopener");
+      else {
+        var msg = "Launch failed: " + (b.error || res.status);
+        if (typeof _showToast === "function") _showToast(msg); else alert(msg);
+      }
+    }).catch(function (err) {
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      var msg = "Launch failed: " + err;
+      if (typeof _showToast === "function") _showToast(msg); else alert(msg);
+    });
+  }
+  document.addEventListener("click", _onToolLaunchClick, true);
+
   function _actions(row) {
     var runIdEnc = encodeURIComponent(row.run_id || "");
     var studySlug = study(row);
@@ -122,8 +189,98 @@
     var analysis = studySlug
       ? '<a class="action-btn js-authoring" title="Download the analysis-flush output for this run\'s study (.zip)" ' +
         'href="/api/study-analysis-zip?study=' + encodeURIComponent(studySlug) + '" download style="text-decoration:none;">⬇ Analysis</a>' : "";
-    return data + (data && analysis ? " " : "") + analysis;
+    // Rerun — replays this run as a brand-new one via POST /api/run-rerun.
+    // Not available against a published read-only snapshot (no live backend
+    // to launch against). No run_id is interpolated into markup/attributes
+    // here: embedding it in an inline onclick= JS string would need JS
+    // escaping, not esc()'s HTML-entity escaping (the browser HTML-decodes
+    // the attribute before compiling it as JS, so a literal `'` in run_id
+    // would decode back and terminate the string early). Instead the button
+    // carries no id at all — the document-level delegated listener below
+    // resolves run_id from the enclosing <tr data-run-id> (already safely
+    // HTML-escaped there), and calls stopPropagation itself so the row's own
+    // click-to-open handler (the <tr> is clickable) never fires.
+    var isSnapshot = (window.__DASH_CONFIG__ || {}).mode === "snapshot";
+    var rerun = (row.run_id && !isSnapshot)
+      ? '<button type="button" class="action-btn js-authoring rerun-btn" ' +
+        'title="Re-run this simulation as a brand-new run">↻ Rerun</button>' : "";
+    var parts = [data, analysis, rerun].filter(function (h) { return !!h; });
+    return parts.join(" ");
   }
+
+  // Global handler for the ⬇/↻ action buttons rendered above (sim-table.js is
+  // an IIFE, so expose on window like the other row helpers). One-click
+  // rerun: POST /api/run-rerun, then refresh whichever Simulations table is
+  // mounted (global Sim-DB page and/or per-study tab — both expose a
+  // refresh hook when present).
+  function _rerunSim(runId, btnEl) {
+    if (!runId) return;
+    var origLabel = btnEl ? btnEl.textContent : "";
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = "… rerunning"; }
+    fetch("/api/run-rerun", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: runId }),
+    }).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; })
+        .catch(function () { return { ok: r.ok, status: r.status, body: {} }; });
+    }).then(function (res) {
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = origLabel || "↻ Rerun"; }
+      var body = res.body || {};
+      if (!res.ok) {
+        var errMsg = "Rerun failed: " + (body.error || res.status);
+        if (typeof _showToast === "function") _showToast(errMsg);
+        else alert(errMsg);
+        return;
+      }
+      var okMsg = "Rerun launched" + (body.run_id ? " — new run " + body.run_id : "");
+      if (typeof _showToast === "function") _showToast(okMsg);
+      else alert(okMsg);
+      // Refresh whichever Simulations table(s) are on the current page.
+      if (typeof window._initSimulations === "function") window._initSimulations(true);
+      if (typeof window._loadStudySims === "function") window._loadStudySims(true);
+    }).catch(function (err) {
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = origLabel || "↻ Rerun"; }
+      var netMsg = "Rerun failed: network error — " + err;
+      if (typeof _showToast === "function") _showToast(netMsg);
+      else alert(netMsg);
+    });
+  }
+  window._rerunSim = _rerunSim;
+
+  // Delegated ↻ Rerun click handling — wired ONCE at the document level
+  // (not per-mount inside renderTable) because rows rendered by this module
+  // reach the DOM through two different paths that don't share a common
+  // container: the per-study SimTable.renderTable() mount AND the global
+  // Sim-DB page's own tbody (walkthrough.js's _applySimFilter sets
+  // tbody.innerHTML from renderRow() output directly, never calling
+  // renderTable()). One document-level listener covers both without
+  // duplicating wiring — and, critically, avoids double-firing that would
+  // happen if a second listener were also added inside renderTable.
+  //
+  // Capture phase (the trailing `true`) is required, not just convenient:
+  // the enclosing <tr> is itself clickable (opens the run) via its OWN
+  // bubble-phase listener, so stopping propagation from a bubble-phase
+  // document listener would run too late — the <tr> handler bubbles through
+  // before an event reaches document. Capturing at document first lets
+  // stopPropagation() here pre-empt the <tr> handler entirely.
+  //
+  // The run_id is read back from the enclosing <tr data-run-id="...">
+  // (already safely HTML-escaped when rendered — see renderRow) rather than
+  // interpolated into an inline onclick= JS string, which would need JS
+  // string-escaping, not esc()'s HTML-entity escaping: the browser
+  // HTML-decodes an attribute value before compiling it as JS, so a literal
+  // `'` in run_id would decode back to `'` and terminate the string early.
+  function _onRerunButtonClick(e) {
+    var btn = e.target.closest(".rerun-btn");
+    if (!btn) return;
+    e.stopPropagation();
+    var tr = btn.closest("tr[data-run-id]");
+    var runId = tr ? tr.getAttribute("data-run-id") : "";
+    if (!runId) return;
+    _rerunSim(runId, btn);
+  }
+  document.addEventListener("click", _onRerunButtonClick, true);
 
   // Render one <tr>. opts.scope === 'study' drops Investigation + Study columns.
   function renderRow(row, opts) {
@@ -148,6 +305,7 @@
     cells += td(emitterPill(row.emitter_type));
     cells += td(esc(fmtTime(row.completed_at || row.started_at)), "color:#6b7280;");
     cells += td(statusChip(row.status));
+    cells += td(toolsCell(row), "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
     cells += td(_actions(row), "text-align:center;white-space:nowrap;");
     return '<tr data-run-id="' + esc(runId) + '" style="border-bottom:1px solid #f3f4f6;cursor:pointer;" ' +
       'title="Click to open this run — its study, or the Composite Explorer">' + cells + "</tr>";
@@ -158,7 +316,8 @@
     { label: "Config", key: "config" },
     { label: "Location", key: "location" },
     { label: "Origin", key: "origin" }, { label: "Emitter", key: "emitter" },
-    { label: "Time", key: "time" }, { label: "Status", key: "status" }, { label: "", key: null },
+    { label: "Time", key: "time" }, { label: "Status", key: "status" },
+    { label: "Tools", key: null }, { label: "", key: null },
   ];
 
   function sortValue(row, key) {
@@ -219,12 +378,22 @@
         else if (window._openSimulation) window._openSimulation(row);
       });
     });
+    // Composite links always open the run in the Composite Explorer (in-app,
+    // nav preserved) with its saved config seeded — regardless of study assoc.
+    mount.querySelectorAll(".sim-composite-link").forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        e.stopPropagation();  // don't fall through to the row's default handler
+        var rid = link.getAttribute("data-run-id");
+        var row = rows.find(function (r) { return (r.run_id || "") === rid; });
+        if (row && window._openCompositeFromRun) window._openCompositeFromRun(row);
+      });
+    });
   }
 
   window.SimTable = {
     esc: esc, statusChip: statusChip, emitterPill: emitterPill, originPill: originPill,
     originLabel: originLabel, fmtTime: fmtTime, location: location, study: study,
-    investigation: investigation, composite: composite,
+    investigation: investigation, composite: composite, toolsCell: toolsCell,
     renderRow: renderRow, renderTable: renderTable,
   };
 })();

@@ -52,6 +52,9 @@
     if (kind === 'data') { _loadAnalysisOutputs(); _loadRawData(); }
     if (kind === 'compose') { _loadModelConfig(); }
     if (kind === 'simulate') { _renderReproduceCard(); _loadStudySims(); }
+    // Textareas measured 0 while their tab was hidden; re-fit the now-visible
+    // panel's auto-grow boxes so they show all content without a scrollbar.
+    if (window._autoGrowTextareas) window._autoGrowTextareas();
   }
   window._setStudyTab = _setStudyTab;
 
@@ -717,6 +720,19 @@
       el.title = 'Network error: ' + (e && e.message || e);
     });
   }
+  // Grow a textarea to fit its content so the caveat/conclusion/biology boxes
+  // show all their text at once instead of a fixed 2–3 rows with an inner
+  // scrollbar. Runs on init and on every keystroke.
+  function _autoGrow(el) {
+    if (!el || (el.tagName || '').toLowerCase() !== 'textarea') return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(el.scrollHeight, 38) + 'px';
+  }
+  // Re-fit every auto-grow box (used after a tab becomes visible: hidden
+  // textareas measure scrollHeight 0 and would otherwise stay at min height).
+  window._autoGrowTextareas = function () {
+    document.querySelectorAll('.narrative-textarea').forEach(_autoGrow);
+  };
   document.querySelectorAll('[data-narrative-path]').forEach(function(el) {
     var tag = (el.tagName || '').toLowerCase();
     // Selects save on change (immediate, no need to wait for blur). Text
@@ -724,6 +740,15 @@
     // tripping per keystroke.
     var evt = (tag === 'select') ? 'change' : 'blur';
     el.addEventListener(evt, function() { _saveNarrative(el); });
+    if (tag === 'textarea') {
+      _autoGrow(el);                                            // size to initial content
+      el.addEventListener('input', function() { _autoGrow(el); });
+    }
+  });
+  // Re-fit on window resize: line-wrapping changes with width, so a full-width
+  // box needs fewer rows than the same text at 90ch and vice-versa.
+  window.addEventListener('resize', function() {
+    document.querySelectorAll('.narrative-textarea').forEach(_autoGrow);
   });
 
   var statusSel = document.getElementById('status-select');
@@ -835,6 +860,35 @@
 
   bindAll('.btn-export', function() {
     window.location = '/api/study-export?study=' + encodeURIComponent(studyName());
+  });
+
+  // "Rerun study" — force-relaunch this study's baseline as a brand-new run
+  // (POST /api/study-run-baseline, same endpoint the Baseline tab's Run button
+  // uses). Live-only: a published read-only snapshot has no backend to launch
+  // against, so the button is hidden there (see the snapshot-mode block near
+  // the end of this file, mirroring the remote-run-panel hide).
+  bindAll('#study-rerun', function(btn) {
+    if (!confirm("Re-run this study's baseline?")) return;
+    var orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '… rerunning';
+    api('POST', '/api/study-run-baseline', { study: studyName() })
+      .then(function(res) {
+        btn.disabled = false;
+        btn.textContent = orig;
+        if (res.status === 200) {
+          var msg = 'Rerun launched' + (res.body && res.body.run_id ? ' — new run ' + res.body.run_id : '');
+          if (typeof _showToast === 'function') _showToast(msg); else alert(msg);
+          if (typeof _loadStudySims === 'function') _loadStudySims(true);
+        } else {
+          alert('Rerun failed: ' + (res.body && res.body.error || res.status));
+        }
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = orig;
+        alert('Rerun failed: network error — ' + err);
+      });
   });
 
   // btn-delete has class "btn-delete danger" — selector ".btn-delete" still matches.
