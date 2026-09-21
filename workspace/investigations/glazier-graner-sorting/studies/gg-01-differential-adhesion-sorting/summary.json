@@ -1,0 +1,30 @@
+{
+  "glazier_graner_cell_sorting": {
+    "composite": "pbg_artistoo.composites.glazier_graner.glazier_graner_cell_sorting",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "mcs_total": 176,
+    "sampling_mcs": 8,
+    "hf_initial_mean": 0.4793,
+    "hf_initial_std": 0.0316,
+    "hf_final_mean": 0.3788,
+    "hf_final_std": 0.0332,
+    "hf_delta_mean": -0.1005,
+    "hf_rel_change_mean": -0.2103,
+    "hf_final_per_seed": [
+      0.3429,
+      0.3705,
+      0.4229
+    ],
+    "hf_initial_per_seed": [
+      0.4358,
+      0.4923,
+      0.5098
+    ],
+    "mean_connectedness_final_mean": 0.998,
+    "total_boundary_final_mean": 3482.7
+  }
+}

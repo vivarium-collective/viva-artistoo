@@ -1,0 +1,58 @@
+{
+  "glazier_graner_checkerboard": {
+    "composite": "pbg_artistoo.composites.glazier_graner.glazier_graner_checkerboard",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "mcs_total": 176,
+    "sampling_mcs": 8,
+    "hf_initial_mean": 0.5282,
+    "hf_initial_std": 0.0326,
+    "hf_final_mean": 0.6713,
+    "hf_final_std": 0.0599,
+    "hf_delta_mean": 0.143,
+    "hf_rel_change_mean": 0.2695,
+    "hf_final_per_seed": [
+      0.7558,
+      0.6257,
+      0.6323
+    ],
+    "hf_initial_per_seed": [
+      0.5682,
+      0.4884,
+      0.5281
+    ],
+    "mean_connectedness_final_mean": 1.0,
+    "total_boundary_final_mean": 3540.0
+  },
+  "glazier_graner_high_temperature": {
+    "composite": "pbg_artistoo.composites.glazier_graner.glazier_graner_high_temperature",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "mcs_total": 176,
+    "sampling_mcs": 8,
+    "hf_initial_mean": 0.4534,
+    "hf_initial_std": 0.0486,
+    "hf_final_mean": 0.3581,
+    "hf_final_std": 0.005,
+    "hf_delta_mean": -0.0953,
+    "hf_rel_change_mean": -0.1999,
+    "hf_final_per_seed": [
+      0.363,
+      0.36,
+      0.3513
+    ],
+    "hf_initial_per_seed": [
+      0.3973,
+      0.4468,
+      0.516
+    ],
+    "mean_connectedness_final_mean": 0.9593,
+    "total_boundary_final_mean": 4139.7
+  }
+}

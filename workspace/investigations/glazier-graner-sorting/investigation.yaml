@@ -1,0 +1,127 @@
+schema_version: 2
+name: glazier-graner-sorting
+title: "Reproducing Glazier & Graner (1993) differential-adhesion cell sorting"
+created: '2026-09-20'
+status: complete
+
+question: |
+  Does the pbg-artistoo wrapper over the Artistoo Cellular Potts Model reproduce the
+  differential-adhesion-driven rearrangements of Glazier & Graner (1993) — cell sorting /
+  engulfment (Fig 12), checkerboard intercalation (Fig 7), and the high-temperature mixing
+  transition (Fig 9) — from the paper's own surface-tension energies, with no cell motility?
+
+hypothesis: |
+  Driven only by relative surface tensions gamma (finite-temperature Metropolis dynamics, no
+  active migration), the heterotypic boundary fraction of a mixed two-type aggregate should FALL
+  when the heterotypic tension is positive (sorting), RISE when it is negative (checkerboard), and
+  fail to sort cleanly at high temperature (mixing). Each regime is reproduced by the wrapper's
+  registered composite for the matching paper figure, robust across seeds.
+
+lead: |
+  Glazier & Graner (1993) showed that a single principle — differential adhesion expressed as
+  surface tension in an extended cellular Potts model — reproduces the classic tissue behaviours
+  of sorting, engulfment and intercalation without any directed cell motion. pbg-artistoo wraps the
+  real Artistoo CPM (JS) through a Node bridge and drives it from process-bigraph. This
+  investigation checks that the wrapper reproduces the paper's three regimes quantitatively, using
+  the heterotypic boundary fraction as the order parameter and cell connectedness as an
+  integrity/mixing discriminator.
+
+executive:
+  what_is_this: |
+    A reproduction study: run the paper's own surface-tension energies through the real Artistoo
+    CPM (wrapped as pbg-artistoo) and check that the heterotypic boundary fraction moves the way
+    Glazier & Graner (1993) reported for three regimes.
+  verdict: |
+    pbg-artistoo reproduces the paper's differential-adhesion sorting. With the Fig-12 energies the
+    heterotypic boundary fraction falls from 0.48 to 0.38 (-21%, mean over 3 seeds) while cells
+    stay intact (mean connectedness 0.998) — clean engulfment. The Fig-7 checkerboard energies
+    (negative heterotypic tension) instead make it RISE from 0.53 to 0.67 (+27%), the opposite
+    sign, confirming the effect is adhesion-driven and not a generic relaxation. The Fig-9
+    high-temperature (T=40) regime is only PARTIALLY separable on the boundary fraction alone: it
+    also falls (-20%), but connectedness degrades to 0.96 and total boundary rises, i.e. the
+    aggregate crumbles/mixes rather than cleanly sorting. The boundary fraction is therefore not a
+    sufficient discriminator for the mixing transition at 176 MCS.
+  verdict_status: passed
+  verdict_detail: |
+    Primary result (Fig 12 sorting) and the sign control (Fig 7 checkerboard) are reproduced
+    cleanly and robustly across 3 seeds. The high-temperature mixing regime (Fig 9) is only
+    partially reproduced on the chosen order parameter: at T=40 the heterotypic fraction falls by a
+    magnitude comparable to sorting (-0.095 vs -0.100), so hf alone cannot distinguish thermal
+    mixing from engulfment. The distinguishing signal IS present in the secondary observables —
+    mean connectedness (0.96 vs 0.998) and total boundary (4140 vs 3483) — which capture the
+    boundary crumpling the paper describes (Table II bulk moments). This is documented as a
+    limitation with a concrete follow-up (longer runs + a bulk-moment / connectedness-based mixing
+    metric), not papered over.
+  decisions_needed: []
+
+inputs:
+  datasets: []
+  references:
+  - glazier1993
+  expert_docs: []
+
+scientific_argument:
+  main_claim: |
+    A single mechanism — differential adhesion as CPM surface tension — reproduces sorting,
+    intercalation and (partially) mixing in the wrapped Artistoo engine, with the SIGN of the
+    heterotypic surface tension setting the direction of boundary-fraction change.
+  evidence_for:
+  - "Fig 12 sorting: heterotypic fraction 0.479 -> 0.379 (-21%), connectedness 0.998 (gg-01)."
+  - "Fig 7 checkerboard: heterotypic fraction 0.528 -> 0.671 (+27%), opposite sign (gg-02)."
+  - "Surface tensions match the paper: gamma_ld=+3 (sorting), gamma_ld=-3 (checkerboard) — unit-tested."
+  evidence_against:
+  - "Fig 9 high-T: heterotypic fraction also falls (-20%), so hf alone does not separate mixing from sorting at 176 MCS; only connectedness (0.96) + total boundary reveal the crumpling."
+  key_figures:
+  - "gg-01 heterotypic_fraction_vs_mcs.png (sorting, 3 seeds)"
+  - "gg-02 heterotypic_fraction_vs_mcs.png (checkerboard rise + high-T mixing, 3 seeds)"
+  caveats:
+  - "Single order parameter (heterotypic fraction) is insufficient for the mixing regime; needs a connectedness/bulk-moment discriminator."
+  - "176 MCS, 3 seeds, 110 cells on an 85x85 field — a screen, not a converged sweep."
+
+competing_frameworks:
+- name: "Differential adhesion hypothesis (DAH)"
+  relation: "primary lens — sorting direction set by relative surface tensions"
+- name: "Thermal / random-mixing null"
+  relation: "adversarial alternative — at high T, fluctuations exceed tension barriers and the aggregate mixes rather than sorts (gg-02 high-T arm tests this)"
+
+biological_story: |
+  Two populations of cells in a mixed aggregate can rearrange into sorted, engulfed, or mixed
+  configurations purely because unlike cells adhere to each other differently than like cells do.
+  Glazier & Graner cast this as surface tension in a cellular Potts model: when the tension between
+  unlike cells (gamma_ld) is positive, the aggregate lowers its energy by minimising unlike-unlike
+  contact — the cohesive type retreats to the interior and is engulfed, and the heterotypic
+  boundary fraction falls. When gamma_ld is negative, unlike cells prefer to touch and interleave
+  into a checkerboard, raising the heterotypic fraction. Raising temperature adds fluctuations that
+  eventually overwhelm the tension differences, and the aggregate mixes and crumbles rather than
+  sorting. This investigation reproduces all three regimes in the wrapped Artistoo engine and shows
+  where a single order parameter is and is not enough to tell them apart.
+
+at_a_glance:
+- {study: gg-01-differential-adhesion-sorting, role: "Primary: reproduce Fig 12 sorting/engulfment (heterotypic fraction falls, cells intact), 3 seeds"}
+- {study: gg-02-sign-and-temperature-controls, role: "Adversarial controls: checkerboard (opposite sign, hf rises) + high-T (mixing, hf ambiguous), 3 seeds each"}
+
+how_to_read: |
+  Read gg-01 as the positive result (sorting) and gg-02 as the two controls that pin down the
+  mechanism: the checkerboard flips the sign of the effect, and the high-temperature arm is the
+  adversarial case where the naive order parameter fails and you need connectedness to see the
+  mixing. The honest edge of the reproduction is the high-T arm.
+
+guidelines:
+  literature_anchors:
+  - "Glazier & Graner 1993, Phys Rev E 47:2128 — J-matrices, gamma values, T=10/40, Table II mixing moments."
+  parameter_catalog:
+  - "Sorting (Fig 12): J_ll=14, J_dd=2, J_ld=11, J_lM=J_dM=16, T=10, lambda=1; gamma_ld=+3."
+  - "Checkerboard (Fig 7): J_ll=10, J_dd=8, J_ld=6, J_lM=J_dM=12, T=10; gamma_ld=-3; per-type areas 58/26."
+  - "High-T (Fig 9): sorting energies at T=40."
+  calibration_targets:
+  - "Direction + sign of heterotypic-fraction change per regime; connectedness ~1.0 for clean sorting."
+
+studies:
+- gg-01-differential-adhesion-sorting
+- gg-02-sign-and-temperature-controls
+
+expert_docs: []
+
+acceptance_criteria:
+- {study: gg-01-differential-adhesion-sorting, behavior: heterotypic-fraction-falls-under-sorting}
+- {study: gg-02-sign-and-temperature-controls, behavior: heterotypic-fraction-rises-under-checkerboard}
