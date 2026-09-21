@@ -1,0 +1,174 @@
+schema_version: 3
+name: gg-01-differential-adhesion-sorting
+investigation: glazier-graner-sorting
+title: "Differential-adhesion cell sorting (Fig 12)"
+kind: reproduction
+status: ran
+confidence: Accepted
+
+question: |
+  Under the Glazier & Graner (1993) Fig-12 sorting energies (J_ll=14, J_dd=2, J_ld=11,
+  J_lM=J_dM=16, T=10; gamma_ld=+3), does the wrapped Artistoo CPM sort a mixed two-type aggregate —
+  the cohesive dark type retreating to the interior, engulfed by a light monolayer — so that the
+  heterotypic boundary fraction falls while cells stay intact?
+
+hypothesis: |
+  The heterotypic boundary fraction decreases monotonically over ~176 MCS as the aggregate sorts,
+  and mean cell connectedness stays near 1.0 (engulfment, not fragmentation). Robust across seeds.
+
+claim: |
+  pbg-artistoo reproduces Fig-12 sorting: heterotypic fraction falls 0.479 -> 0.379 (-21%, mean of
+  3 seeds) with connectedness 0.998 — clean differential-adhesion engulfment, no motility.
+
+baseline:
+- name: sorting
+  composite: pbg_artistoo.composites.glazier_graner.glazier_graner_cell_sorting
+  params: {n_cells: 110, field_size: 85, temperature: 10.0, interval: 8.0}
+
+# The composite is stochastic (finite-T Metropolis); the run is repeated over 3 seeds.
+seeds: [1, 2, 3]
+run_config:
+  mcs_total: 176
+  snapshots: 22
+  mcs_per_snapshot: 8
+  runner: "demo-style direct Composite execution (Node bridge); trajectories in runs/*.csv"
+
+readouts:
+- name: heterotypic_fraction
+  description: "Fraction of cell-cell boundary between UNLIKE types — the paper's sorting order parameter."
+  store_path: readouts/heterotypic_fraction
+  units: dimensionless
+  status: measured
+- name: mean_connectedness
+  description: "Mean per-cell connected fraction; 1.0 = every cell is a single intact blob."
+  store_path: readouts/mean_connectedness
+  units: dimensionless
+  status: measured
+- name: total_boundary
+  description: "Total mismatched-bond boundary length."
+  store_path: readouts/total_boundary
+  units: lattice-bonds
+  status: measured
+
+behavior_tests:
+- name: heterotypic-fraction-falls-under-sorting
+  classification: primary
+  description: "Heterotypic boundary fraction at 176 MCS is below its early (8 MCS) value in every seed."
+  measure: {observable: heterotypic_fraction, from: readouts/heterotypic_fraction, reduce: final_vs_initial}
+  pass_if: {final_lt_initial: true, min_relative_drop: 0.10}
+  requires_simulation: sorting
+  cites: [glazier1993]
+- name: cells-stay-intact-during-sorting
+  classification: control
+  description: "Mean connectedness stays >= 0.95 (sorting by engulfment, not fragmentation)."
+  measure: {observable: mean_connectedness, from: readouts/mean_connectedness, reduce: final}
+  pass_if: {min: 0.95}
+  requires_simulation: sorting
+
+reproducibility_metrics:
+  comparison: |
+    3 seeds (1,2,3), 176 MCS, 110 cells on an 85x85 field. Initial = first snapshot (8 MCS);
+    final = 176 MCS. Trajectories in runs/glazier_graner_cell_sorting_seed{1,2,3}.csv.
+  metrics:
+  - observable: heterotypic_fraction
+    expected: "decreases (sorting/engulfment), Glazier & Graner Fig 12"
+    initial_mean: 0.479
+    final_mean: 0.379
+    final_std: 0.033
+    delta_mean: -0.100
+    relative_change: -0.210
+    per_seed_final: [0.343, 0.371, 0.423]
+    verdict: match
+    note: "Falls in all 3 seeds; magnitude -0.10 +/- 0.03."
+  - observable: mean_connectedness
+    expected: "~1.0 (cells remain intact during engulfment)"
+    final_mean: 0.998
+    verdict: match
+    note: "Clean sorting, not fragmentation."
+
+findings:
+- id: F-01
+  kind: biological
+  status: confirms
+  statement: |
+    The wrapped Artistoo CPM reproduces Glazier & Graner Fig-12 sorting: with gamma_ld=+3 the
+    heterotypic boundary fraction falls 0.479 -> 0.379 (-21%, mean of 3 seeds), the cohesive dark
+    type engulfed by the light monolayer.
+  evidence:
+    observed: "hf 0.479 -> 0.379 (delta -0.100 +/- 0.033 over seeds 1-3)"
+    from_test: heterotypic-fraction-falls-under-sorting
+  expected:
+    summary: "Heterotypic boundary fraction decreases as the aggregate sorts (Fig 12)."
+    cites: [glazier1993]
+- id: F-02
+  kind: biological
+  status: confirms
+  statement: |
+    Sorting proceeds by engulfment, not fragmentation: mean cell connectedness stays 0.998, so
+    cells remain intact single blobs while the interface reorganises.
+  evidence:
+    observed: "mean_connectedness final 0.998"
+    from_test: cells-stay-intact-during-sorting
+
+conclusion_verdicts:
+  regression_compatibility:
+    result: PASS
+    basis: |
+      The glazier_graner_cell_sorting composite builds and runs against the real Artistoo engine
+      (Node bridge) for all 3 seeds; trajectories are committed (runs/*.csv) and the chart renders.
+  biological_validation:
+    result: PASS
+    basis: |
+      Heterotypic fraction falls in every seed (-0.10 +/- 0.03, -21%) with connectedness 0.998 —
+      the qualitative and directional result of Fig 12, from the paper's own energies, no motility.
+  explanatory_gain:
+    result: POSITIVE
+    basis: |
+      Confirms the wrapper drives the real CPM Hamiltonian faithfully; establishes heterotypic
+      fraction as the working sorting order parameter and connectedness as the integrity control
+      (which becomes the discriminator in gg-02's high-T arm).
+
+limitations:
+- "A screen, not a converged study: 176 MCS, 3 seeds, 110 cells on an 85x85 field, single parameter point (the paper's exact Fig-12 energies)."
+- "No comparison to a published trajectory curve (the paper reports mechanism/direction, not a digitised hf(t) for these energies), so the match is directional + magnitude, not curve-fitted."
+
+literature_anchors:
+- expectation: "Differential adhesion with gamma_ld>0 drives sorting/engulfment; heterotypic contact is minimised."
+  model_observable: "readouts/heterotypic_fraction decreasing over MCS"
+  source: "Glazier & Graner 1993, Fig 12"
+  status_in_workspace: "Verified — falls -21% over 3 seeds"
+  cites: [glazier1993]
+
+followup_proposals:
+- id: sorting-convergence-sweep
+  title: "Converge the sorted state and add more seeds"
+  status: proposed
+  motivation: |
+    176 MCS / 3 seeds shows the direction clearly but not the equilibrium sorted fraction. A longer
+    run (>=1000 MCS) with more seeds would give a converged endpoint + a tight run-to-run band.
+  hypothesized_mechanism: |
+    Extend MCS until hf plateaus; report mean +/- band across >=10 seeds; optionally digitise the
+    paper's engulfment progression for a curve-level comparison.
+
+runs:
+- name: sorting-seed1
+  composite: sorting
+  seed: 1
+  status: completed
+  emitter_path: runs/glazier_graner_cell_sorting_seed1.csv
+- name: sorting-seed2
+  composite: sorting
+  seed: 2
+  status: completed
+  emitter_path: runs/glazier_graner_cell_sorting_seed2.csv
+- name: sorting-seed3
+  composite: sorting
+  seed: 3
+  status: completed
+  emitter_path: runs/glazier_graner_cell_sorting_seed3.csv
+
+pipeline_gate:
+  gate_evaluator:
+    result: passed
+    blocked_by: []
+    evaluated_by: authored
