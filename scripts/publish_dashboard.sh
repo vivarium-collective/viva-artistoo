@@ -3,7 +3,7 @@
 # (every investigation + study + assets) that anyone can browse with no server.
 # Built by `vivarium-workbench-publish`; the same build is used locally (to
 # preview) and by .github/workflows/publish-dashboard.yml (to publish to
-# gh-pages:dashboard/).
+# gh-pages:workbench/).
 #
 # GENERIC: base-path + interactive-url are passed in (the CI workflow derives
 # them from the GitHub repo), so this script is workspace-agnostic — it ships
@@ -11,8 +11,8 @@
 #
 # Usage:
 #   scripts/publish_dashboard.sh [OUT_DIR] [BASE_PATH] [INTERACTIVE_URL]
-#     OUT_DIR          default: reports/published/dashboard
-#     BASE_PATH        e.g. /<repo>/dashboard for GitHub Pages' project subpath
+#     OUT_DIR          default: reports/published/workbench
+#     BASE_PATH        e.g. /<repo>/workbench for GitHub Pages' project subpath
 #                      (omit for a root-served bundle)
 #     INTERACTIVE_URL  link back to the live/interactive repo (optional)
 #
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 WS_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="${1:-$WS_ROOT/reports/published/dashboard}"
+OUT="${1:-$WS_ROOT/reports/published/workbench}"
 BASE_PATH="${2:-}"
 INTERACTIVE_URL="${3:-}"
 
@@ -44,4 +44,4 @@ PYTHONPATH="$WS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
 find "$OUT" -name '*.map' -delete
 touch "$OUT/.nojekyll"
 
-echo "built read-only dashboard bundle at $OUT ($(du -sh "$OUT" | cut -f1))"
+echo "built read-only workbench bundle at $OUT ($(du -sh "$OUT" | cut -f1))"
