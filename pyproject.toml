@@ -25,16 +25,11 @@ dependencies = [
     "pypdf>=4.0",
     "matplotlib",
     "plotly",
-    "vivarium-workbench",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest", "matplotlib", "plotly", "bigraph-viz2"]
 
-[tool.uv.sources]
-# vivarium-workbench (the dashboard/publish CLI) isn't on PyPI — resolve it from
-# git main so `uv sync` and the publish workflow can install it.
-vivarium-workbench = { git = "https://github.com/vivarium-collective/vivarium-workbench.git", branch = "main" }
 
 [project.urls]
 Homepage = "https://github.com/vivarium-collective/pbg-artistoo"
