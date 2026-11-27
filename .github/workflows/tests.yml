@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+      - name: Install viva-superpowers (composite_generator registration tests)
+        run: python -m pip install "viva-superpowers @ git+https://github.com/vivarium-collective/viva-superpowers.git"
+      - name: Import check
+        run: python -c "import pbg_artistoo"
+      - name: Run tests
+        run: pytest -q
